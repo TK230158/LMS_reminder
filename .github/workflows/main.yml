@@ -1,0 +1,39 @@
+name: LMS reminder
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Restore Session Cache
+        uses: actions/cache@v3
+        with:
+          path: session.json
+          key: ${{ runner.os }}-lms-session-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-lms-session-
+
+      - name: Install dependencies
+        run: |
+          pip install requests playwright python-dotenv
+          playwright install --with-deps chromium
+
+      - name: Run script
+        env:
+          LMS_USER: ${{ secrets.LMS_USER }}
+          LMS_PASS: ${{ secrets.LMS_PASS }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TZ: Asia/Tokyo
+        run: python main.py
