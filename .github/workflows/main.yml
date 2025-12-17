@@ -2,7 +2,7 @@ name: LMS reminder
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/5 0-9 * * *'
   workflow_dispatch:
 
 jobs:
@@ -36,4 +36,10 @@ jobs:
           LMS_PASS: ${{ secrets.LMS_PASS }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           TZ: Asia/Tokyo
-        run: python main.py
+        run: |
+          CURRENT_TIME=$(date +%H%M)
+          if [ "$CURRENT_TIME" -gt "1820" ] && [ "$CURRENT_TIME" -lt "2359" ]; then
+            echo "Work time finished (after 18:20). Skipping."
+            exit 0
+          fi
+          python main.py
