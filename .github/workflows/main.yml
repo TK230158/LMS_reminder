@@ -1,4 +1,4 @@
-name: LMS reminder
+name: main
 
 on:
   schedule:
