@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+SLACK_WEBHOOK_URL = "https://hooks.slack.com/triggers/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"
 SESSION_FILE = "session.json"
 
 class LMSBot:
@@ -114,8 +114,8 @@ def main():
     CONFIG = {
         "login_url": "https://lms-tokyo.iput.ac.jp/login/index.php",
         "cal_url": "https://lms-tokyo.iput.ac.jp/calendar/view.php?view=day",
-        "user": os.getenv("LMS_USER"),
-        "pass": os.getenv("LMS_PASS"),
+        "user": "TK230158",
+        "pass": "Chi4kun1pass",
     }
 
     if not CONFIG["user"] or not CONFIG["pass"]:
@@ -129,20 +129,27 @@ def main():
         if bot.login(CONFIG["login_url"], CONFIG["cal_url"], CONFIG["user"], CONFIG["pass"]):
             events = bot.get_attendance_data()
 
-            now = datetime.now()
+            now = datetime.now().replace(microsecond=0)
             for e in events:
                 if not e["start_time"]: continue
                 
                 start_dt = datetime.strptime(e["start_time"], "%H:%M").replace(
                     year=now.year, month=now.month, day=now.day
                 )
+                end_dt = datetime.strptime(e["end_time"], "%H:%M").replace(
+                    year=now.year, month=now.month, day=now.day
+                )
                 
+                # 通知開始は5分前から
                 lead_time = start_dt - timedelta(minutes=5)
                 
-                if lead_time <= now <= start_dt:
+                print(f"チェック中: {e['title']} (範囲: {lead_time.strftime('%H:%M')} ~ {end_dt.strftime('%H:%M')})")
+
+                # 今が「5分前」から「授業終了」までの間ならSlack！
+                if lead_time <= now <= end_dt:
                     send_slack(e)
                 else:
-                    print(f"Waiting: {e['title']} ({e['start_time']})")
+                    print(f"時間外だゆん: {e['title']}")
 
         browser.close()
 
