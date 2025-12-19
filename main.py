@@ -118,7 +118,7 @@ def main():
                 
                 print(f"Checking: {e['title']} ({e['start']} - {e['end']})")
 
-                # Condition: Current time is between 5 mins before start and the end of class
+                # Condition: Current time is between 5 mins before start and the start of class
                 print(f"Now: {now}, Lead Time: {lead_time}, Start: {start_dt}")
                 if lead_time <= now <= start_dt:
                     send_slack(e)

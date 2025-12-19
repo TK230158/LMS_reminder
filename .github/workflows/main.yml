@@ -1,8 +1,6 @@
 name: main
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes
   workflow_dispatch:
 
 jobs:
@@ -16,14 +14,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Restore Session Cache
-        uses: actions/cache@v3
-        with:
-          path: session.json
-          key: ${{ runner.os }}-lms-session-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-lms-session-
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -37,9 +28,4 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           TZ: Asia/Tokyo
         run: |
-          CURRENT_TIME=$(date +%H%M)
-          if [ "$CURRENT_TIME" -gt "1820" ] && [ "$CURRENT_TIME" -lt "2359" ]; then
-            echo "Work time finished (after 18:20). Skipping."
-            exit 0
-          fi
           python main.py
