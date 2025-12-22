@@ -82,8 +82,9 @@ class LMSBot:
                         final_url = submit_btn.get_attribute("href")
                     except:
                         final_url = self.page.url
-                    
-                self.page.go_back()
+                
+                self.navigate(CALENDAR_URL)
+                
 
             # Parse time and title
             lines = [l.strip() for l in text.split('\n') if l.strip()]
@@ -109,7 +110,7 @@ def send_slack(event):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         bot = LMSBot(browser)
 
         if bot.login():
