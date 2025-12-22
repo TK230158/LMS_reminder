@@ -74,7 +74,15 @@ class LMSBot:
                 # Check for direct attendance submission link
                 submit_btn = self.page.locator('.statuscol.cell.c2').get_by_role("link", name="出欠を送信する")
                 if submit_btn.count() > 0:
-                    final_url = submit_btn.get_attribute("href")
+                    submit_btn.click()
+                    
+                    try:
+                        self.page.get_by_label("出席").check()
+                        self.page.locator("#id_submitbutton").click()
+                        final_url = submit_btn.get_attribute("href")
+                    except:
+                        final_url = self.page.url
+                    
                 self.page.go_back()
 
             # Parse time and title
