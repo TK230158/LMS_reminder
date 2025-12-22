@@ -110,7 +110,7 @@ def send_slack(event):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         bot = LMSBot(browser)
 
         if bot.login():
