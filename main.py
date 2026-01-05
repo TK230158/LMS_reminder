@@ -74,7 +74,8 @@ class LMSBot:
                 # Check for direct attendance submission link
                 submit_btn = self.page.locator('.statuscol.cell.c2').get_by_role("link", name="出欠を送信する")
                 if submit_btn.count() > 0:
-                    submit_btn.click()
+                    final_url = submit_btn.get_attribute("href")
+                    print(f"Found direct submission link: {final_url}")
 
                 self.navigate(CALENDAR_URL)
                 
