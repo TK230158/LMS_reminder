@@ -75,14 +75,7 @@ class LMSBot:
                 submit_btn = self.page.locator('.statuscol.cell.c2').get_by_role("link", name="出欠を送信する")
                 if submit_btn.count() > 0:
                     submit_btn.click()
-                    
-                    try:
-                        self.page.get_by_label("出席").check()
-                        self.page.locator("#id_submitbutton").click()
-                        final_url = submit_btn.get_attribute("href")
-                    except:
-                        final_url = self.page.url
-                
+
                 self.navigate(CALENDAR_URL)
                 
 
