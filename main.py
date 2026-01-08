@@ -17,7 +17,6 @@ USER_PASS = os.getenv("LMS_PASS")
 
 class LMSBot:
     def __init__(self, browser):
-        # Create context with saved session if it exists
         ctx_args = {
             "locale": "ja-JP",
             "viewport": {"width": 1280, "height": 800},
@@ -31,7 +30,6 @@ class LMSBot:
         self.page = self.context.new_page()
 
     def navigate(self, url):
-        """Navigate to URL without timeout error."""
         self.page.goto(url, wait_until="domcontentloaded", timeout=0)
 
     def login(self):
@@ -46,7 +44,6 @@ class LMSBot:
             self.page.locator('button[type="submit"]').first.click()
             self.page.wait_for_load_state("domcontentloaded", timeout=0)
             
-            # Save session for next time
             self.context.storage_state(path=SESSION_FILE)
             self.navigate(CALENDAR_URL)
         else:
@@ -60,35 +57,52 @@ class LMSBot:
         for i in range(items.count()):
             item = items.nth(i)
             text = item.inner_text()
-            
-            # Find activity link
+
             link_loc = item.get_by_role("link", name="活動に移動する")
             if link_loc.count() == 0:
                 link_loc = item.locator("a.card-link")
-            
+
             href = link_loc.get_attribute("href") if link_loc.count() > 0 else ""
             final_url = href
+            direct_submit = False  # ★追加：出欠送信リンクが取れたか
 
             if href:
                 self.navigate(href)
-                # Check for direct attendance submission link
-                submit_btn = self.page.locator('.statuscol.cell.c2').get_by_role("link", name="出欠を送信する")
-                if submit_btn.count() > 0:
-                    final_url = submit_btn.get_attribute("href")
-                    print(f"Found direct submission link: {final_url}")
+
+                submit_link = self.page.get_by_role("link", name="出欠を送信する")
+                if submit_link.count() == 0:
+                    submit_link = self.page.locator('.statuscol.cell.c2').get_by_role("link", name="出欠を送信する")
+
+                if submit_link.count() > 0:
+                    direct_href = submit_link.first.get_attribute("href") or ""
+
+                    if direct_href:
+                        final_url = direct_href
+                        direct_submit = True
+                        print(f"Found direct submission link: {final_url}")
+
+                    try:
+                        submit_link.first.click()
+                        self.page.wait_for_load_state("domcontentloaded")
+                        try:
+                            self.page.locator('label:has-text("出席")').click()
+                        except Exception as e:
+                            print(f"Radio button not found: {e}")
+                    except Exception as e:
+                        print(f"Submit link click failed: {e}")
 
                 self.navigate(CALENDAR_URL)
-                
 
             # Parse time and title
             lines = [l.strip() for l in text.split('\n') if l.strip()]
             times = re.findall(r'(\d{2}:\d{2})', lines[1] if len(lines) > 1 else "")
-            
+
             results.append({
                 "title": lines[3] if len(lines) > 3 else "Unknown",
                 "url": final_url,
                 "start": times[0] if len(times) > 0 else "",
-                "end": times[1] if len(times) > 1 else ""
+                "end": times[1] if len(times) > 1 else "",
+                "direct_submit": direct_submit,
             })
         return results
 
@@ -97,7 +111,7 @@ def send_slack(event):
         "title": event["title"],
         "start_time": event["start"],
         "end_time": event["end"],
-        "url": event["url"]
+        "url": event["url"],
     }
     requests.post(SLACK_WEBHOOK_URL, json=payload)
     print(f"Slack sent: {event['title']}")
@@ -112,19 +126,22 @@ def main():
             now = datetime.now().replace(microsecond=0)
 
             for e in events:
-                if not e["start"]: continue
-                
-                # Setup date objects for comparison
+                if not e["start"]:
+                    continue
+
                 start_dt = datetime.strptime(e["start"], "%H:%M").replace(year=now.year, month=now.month, day=now.day)
                 end_dt = datetime.strptime(e["end"], "%H:%M").replace(year=now.year, month=now.month, day=now.day)
                 lead_time = start_dt - timedelta(minutes=5)
-                
-                print(f"Checking: {e['title']} ({e['start']} - {e['end']})")
 
-                # Condition: Current time is between 5 mins before start and the start of class
+                print(f"Checking: {e['title']} ({e['start']} - {e['end']})")
                 print(f"Now: {now}, Lead Time: {lead_time}, Start: {start_dt}")
+
+                if e.get("direct_submit") and e.get("url"):
+                    send_slack(e, reason="direct_submit_link_found")
+                    continue
+
                 if lead_time <= now <= start_dt:
-                    send_slack(e)
+                    send_slack(e, reason="within_lead_time")
                 else:
                     print("Status: Waiting (Not in time range)")
 
