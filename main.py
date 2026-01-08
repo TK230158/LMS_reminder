@@ -138,10 +138,7 @@ def main():
 
                 if e.get("direct_submit") and e.get("url"):
                     send_slack(e)
-                    continue
 
-                if lead_time <= now <= start_dt:
-                    send_slack(e)
                 else:
                     print("Status: Waiting (Not in time range)")
 
