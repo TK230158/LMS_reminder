@@ -81,16 +81,6 @@ class LMSBot:
                         direct_submit = True
                         print(f"Found direct submission link: {final_url}")
 
-                    try:
-                        submit_link.first.click()
-                        self.page.wait_for_load_state("domcontentloaded")
-                        try:
-                            self.page.locator('label:has-text("出席")').click()
-                        except Exception as e:
-                            print(f"Radio button not found: {e}")
-                    except Exception as e:
-                        print(f"Submit link click failed: {e}")
-
                 self.navigate(CALENDAR_URL)
 
             # Parse time and title
@@ -130,17 +120,15 @@ def main():
                     continue
 
                 start_dt = datetime.strptime(e["start"], "%H:%M").replace(year=now.year, month=now.month, day=now.day)
-                end_dt = datetime.strptime(e["end"], "%H:%M").replace(year=now.year, month=now.month, day=now.day)
-                lead_time = start_dt - timedelta(minutes=5)
-
+                
                 print(f"Checking: {e['title']} ({e['start']} - {e['end']})")
-                print(f"Now: {now}, Lead Time: {lead_time}, Start: {start_dt}")
 
                 if e.get("direct_submit") and e.get("url"):
                     send_slack(e)
+                    break
 
                 else:
-                    print("Status: Waiting (Not in time range)")
+                    print("Status: Waiting (Not in time range or link not found)")
 
         browser.close()
 
